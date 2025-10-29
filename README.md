@@ -1,1 +1,3 @@
 结合fast in slow和traveluav两个项目来构建vln项目
+
+换到了a40机器上
