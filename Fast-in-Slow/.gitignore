@@ -1,0 +1,44 @@
+exp/
+test_toy.sh
+test_infer.sh
+scripts/test_toy.py
+scripts/test_infer.py
+train_private.sh
+test_rlbench_private.sh
+ckpt/
+
+# Python
+__pycache__
+*.pyc
+*.egg-info
+dist
+
+
+# Log
+*.log
+*.log.*
+*.jsonl
+
+# Data
+data/
+# Editor
+.idea
+*.swp
+
+# Other
+.DS_Store
+wandb
+output
+work_dirs
+data
+model_zoo
+settings
+checkpoints
+ckpts*
+
+.ipynb_checkpoints
+*.ipynb
+src/model_wrapper/utils/GroundingDINO/groundingdino_swint_ogc.pth
+src/model_wrapper/utils/__pycache__
+
+TravelUAV_env_unzip/
