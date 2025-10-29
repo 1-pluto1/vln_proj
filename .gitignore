@@ -59,4 +59,5 @@ data/
 datasets/
 checkpoints/
 models/
-EOF
+datasets/
+ckpts/

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-从huggingface下载TravelUAV数据集的脚本，使用hfmirror加速下载
+从huggingface下载数据集的脚本，使用hfmirror加速下载
 """
 
 import os
@@ -22,13 +22,13 @@ def parse_args():
     parser.add_argument(
         '--output_dir',
         type=str,
-        default='./data/TravelUAV_data',
+        default='/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/UAV_Flow_data',
         help='数据集下载位置'
     )
     parser.add_argument(
         '--repo_id',
         type=str,
-        default='wangxiangyu0814/TravelUAV_data_json',
+        default='wangxiangyu0814/UAV-Flow',
         help='Huggingface上的数据集仓库ID'
     )
     parser.add_argument(
@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument(
         '--file',
         type=str,
-        default=None,
+        default='train-00000-of-00054.parquet',
         help='指定要下载的单个文件，不指定则下载整个仓库'
     )
     return parser.parse_args()
