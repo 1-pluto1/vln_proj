@@ -1,16 +1,13 @@
 # parameter
-export PYTHONPATH=/workspaces/chenhao/code/Fast-in-Slow:/workspaces/chenhao/code/Fast-in-Slow/transformers:/workspaces/chenhao/code/Fast-in-Slow/timm:$PYTHONPATH
-export HF_HOME=/workspaces/huggingface
+export PYTHONPATH=/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/Fast-in-Slow:/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/Fast-in-Slow/timm:$PYTHONPATH
+export HF_HOME=/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/.cache/huggingface
 export NCCL_DEBUG=INFO
 export NCCL_SOCKET_IFNAME=eth
+unset NCCL_SOCKET_IFNAME
 export NCCL_P2P_LEVEL=NVL
 export NCCL_TIMEOUT=1800
 
 # UAV特定参数
-export CUDA_VISIBLE_DEVICES=0  # 可以设置为"0,1,2,3"使用多个GPU
-VLA_TYPE="EXP_FiSvla_UAV"  # 使用为UAV定义的VLA配置
-RUN_ID="fis_uav_static_v1"  # 训练运行的唯一标识符
-DATA_ROOT_DIR="/home/liusq/TravelUAV/vln_proj/TravelUAV/data/TravelUAV_unzip"  # 静态数据集路径
 USE_UAV_DATASET=true
 
 TRAINING_MODE='async'        # a very powerful control mode, see "models/vlms/prismatic.py"
@@ -39,26 +36,21 @@ BATCH_SIZE=6
 EPOCHS=300
 LEARNING_RATE=2e-5
 ACTION_DIM=6
-CAMERA_VIEW="head_slow,head_fast,left_slow,left_fast,right_slow,right_fast"
+CAMERA_VIEW="head_slow,head_fast"
 
-DATA_ROOT=/workspaces/rlds_data
-EXP_ROOT=/workspaces/chenhao/code/Fast-in-Slow/exp
+DATA_ROOT="/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/datasets/rlds_data"
+EXP_ROOT=/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/Fast-in-Slow/exp
 MODEL_SAVE_NUM=3
-SAVE_INTERVAL=10  # 每10个epoch保存一次模型
 
 # 日志设置
 DATE=$(date +"%Y%m%d_%H%M%S")
 LOG_DIR="logs"
 mkdir -p ${LOG_DIR}
 
-NUM_GPUS=$(echo $CUDA_VISIBLE_DEVICES | tr ',' '\n' | wc -l)
+NUM_GPUS=4
 NODES=1
-MASTER_ADDR="172.31.0.3"
+MASTER_ADDR="localhost"
 NODE_RANK=0
-
-echo "开始训练: ${RUN_ID} - $(date)"
-echo "数据路径: ${DATA_ROOT_DIR}"
-echo "GPU配置: CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}, 使用${NUM_GPUS}个GPU"
 
 torchrun --nnodes $NODES --nproc-per-node $NUM_GPUS --node_rank=$NODE_RANK --master_addr=${MASTER_ADDR} --master_port=29500 scripts/train.py \
   --vla.type prism-dinosiglip-224px+oxe+diffusion \
@@ -97,4 +89,4 @@ torchrun --nnodes $NODES --nproc-per-node $NUM_GPUS --node_rank=$NODE_RANK --mas
   --action_chunk ${ACTION_CHUNK} \
   --load_state ${LOAD_STATE} \
   --lang_subgoals_exist ${LANG_SUBGOALS_EXIST} \
-  --pretrained_checkpoint "<pretrained_checkpoint>"
+  --pretrained_checkpoint "/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/ckpts/models--haosad--fisvla"

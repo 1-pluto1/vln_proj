@@ -74,8 +74,8 @@ class TrainConfig:
     # Run Arguments
     run_id: Optional[str] = None                                    # Run ID for logging, Weights & Biases
     run_id_note: Optional[str] = None                               # Extra note for logging, Weights & Biases
-    save_interval: int = 2500   
-    image_aug: bool = False                                       # Interval for saving checkpoints (in steps)
+    save_interval: int = 2500                                       # Interval for saving checkpoints (in steps)
+    image_aug: bool = False                                         # Whether to enable image augmentations
     seed: int = 42                                                  # Random seed (for reproducibility)
 
     # HF Hub Credentials (for any gated models)
@@ -86,11 +86,11 @@ class TrainConfig:
     #trackers: Tuple[str, ...] = ("jsonl",)                         # Trackers to initialize (if W&B, add config!)
     wandb_project: str = ""                                         # Name of W&B project to log to (use default!)
     wandb_entity: str = ""                                          # Name of entity to log under
-    repeated_diffusion_steps: int = 8   
+    repeated_diffusion_steps: int = 8                               # Repeated steps for training action model (a diffusion model)
     load_all_data_for_training: bool = True                         # Load all training data 
-    future_action_window_size: int = 15 
-    past_action_window_size: int = 0                                # Repeated steps for training action model (a diffusion model)
-    action_dim: int = 6                                              # Dimension of action space (6-DoF for UAV)
+    future_action_window_size: int = 15                             # Action chunking, predicting future actions + current action
+    past_action_window_size: int = 0                                # Action history window size, not used now, set to be 0 
+    action_dim: int = 7                                             # Dimension of action space
     class_dropout_prob: float = 0.
     action_tokenizer_exist: bool = False
     use_diff: bool = False
@@ -107,7 +107,6 @@ class TrainConfig:
     action_chunk: int = 1
     load_state: bool = True
     lang_subgoals_exist: bool = False
-    use_uav_dataset: bool = True                                  # Whether to use UAV dataset instead of RLDS
 
     def __post_init__(self) -> None:
         """Lift optimization parameters from `self.vla` for ease of use =>> validate on `expected_world_size`"""
@@ -304,16 +303,22 @@ def train(cfg: TrainConfig) -> None:
     overwatch.info(f"Creating VLA Open-X Dataset with Mixture `{cfg.vla.data_mix}`")
     vla_dataset, _, collator = get_vla_dataset_and_collator(
         cfg.data_root_dir,
+        cfg.vla.data_mix,
         image_transform=vla.vision_backbone.get_image_transform(),
         tokenizer=vla.llm_backbone.get_tokenizer(),
         prompt_builder_fn=vla.llm_backbone.prompt_builder_fn,
         default_image_resolution=vla.vision_backbone.default_image_resolution,
+        shuffle_buffer_size=cfg.vla.shuffle_buffer_size,
+        image_aug=cfg.image_aug,
+        load_all_data_for_training=cfg.load_all_data_for_training,
+        future_action_window_size=cfg.future_action_window_size,
+        past_action_window_size=cfg.past_action_window_size,
         action_tokenizer_exist=cfg.action_tokenizer_exist,
         need_to_sub = cfg.need_to_sub,
+        camera_view=cfg.camera_view,
         load_pointcloud = cfg.load_pointcloud,
         action_chunk = cfg.action_chunk,
         lang_subgoals_exist = cfg.lang_subgoals_exist,
-        use_uav_dataset = cfg.use_uav_dataset,
     )
 
     # Save dataset statistics for de-normalization at inference time
