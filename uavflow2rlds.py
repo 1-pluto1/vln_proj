@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 import argparse
+import math
 
 
 def safe_get(d: Dict[str, Any], keys: List[str], default=None):
@@ -57,6 +58,30 @@ def extract_pose_from_step(step: Dict[str, Any]) -> Tuple[List[float], List[floa
     return to_xyz_from_any(pos), to_rpy_from_any(ori)
 
 
+def parse_pose_from_list(vals: List[float]) -> Tuple[List[float], List[float]]:
+    # UAV-Flow 列表格式：
+    # raw_logs: [x, y, z, roll(rad), yaw(deg), pitch(rad), timestamp]
+    # preprocessed_logs: [x, y, z, roll(rad), yaw(deg), pitch(rad)]
+    # 目标 rpy 顺序为 [roll(rad), pitch(rad), yaw(rad)]
+    if not isinstance(vals, (list, tuple)):
+        return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]
+    if len(vals) >= 7:
+        x, y, z = float(vals[0]), float(vals[1]), float(vals[2])
+        roll = float(vals[3])
+        yaw_rad = math.radians(float(vals[4]))
+        pitch = float(vals[5])
+        return [x, y, z], [roll, pitch, yaw_rad]
+    if len(vals) >= 6:
+        x, y, z = float(vals[0]), float(vals[1]), float(vals[2])
+        roll = float(vals[3])
+        yaw_rad = math.radians(float(vals[4]))
+        pitch = float(vals[5])
+        return [x, y, z], [roll, pitch, yaw_rad]
+    if len(vals) >= 3:
+        return [float(vals[0]), float(vals[1]), float(vals[2])], [0.0, 0.0, 0.0]
+    return [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]
+
+
 def compute_actions(xyz_list: List[List[float]], rpy_list: List[List[float]]) -> List[List[float]]:
     acts = []
     T = len(xyz_list)
@@ -89,19 +114,16 @@ def convert_folder_to_rlds(input_root: str, output_root: str, dataset_name: str 
     for traj_dir in sorted(traj_dirs, key=lambda p: p.name):
         log_path = traj_dir / "log.json"
         if not log_path.exists():
-            # 跳过没有 log.json 的目录
             continue
 
-        # 读取 log.json
         with open(log_path, "r") as f:
             log = json.load(f)
 
-        # 收集帧图像（路径列表）
         img_paths = collect_images(traj_dir)
         if len(img_paths) == 0:
             continue
 
-        # 解析位姿序列
+        # 优先 preprocessed_logs（相对坐标，更适合训练），其次 raw_logs
         steps = []
         if isinstance(log.get("preprocessed_logs"), list) and log["preprocessed_logs"]:
             steps = log["preprocessed_logs"]
@@ -109,22 +131,28 @@ def convert_folder_to_rlds(input_root: str, output_root: str, dataset_name: str 
             steps = log["raw_logs"]
 
         base_pose_xyz, base_pose_rpy = [], []
-        if steps and len(steps) >= len(img_paths):
-            for i in range(len(img_paths)):
-                xyz, rpy = extract_pose_from_step(steps[i])
+        if steps:
+            T = min(len(steps), len(img_paths))
+            for i in range(T):
+                step_i = steps[i]
+                if isinstance(step_i, (list, tuple)):
+                    xyz, rpy = parse_pose_from_list(step_i)
+                else:
+                    xyz, rpy = extract_pose_from_step(step_i)
                 base_pose_xyz.append(xyz)
                 base_pose_rpy.append(rpy)
+            # 如图像更多，补零对齐长度
+            for _ in range(len(img_paths) - T):
+                base_pose_xyz.append([0.0, 0.0, 0.0])
+                base_pose_rpy.append([0.0, 0.0, 0.0])
         else:
-            # 无位姿或长度不够：用零填充
             base_pose_xyz = [[0.0, 0.0, 0.0] for _ in img_paths]
             base_pose_rpy = [[0.0, 0.0, 0.0] for _ in img_paths]
 
         actions = compute_actions(base_pose_xyz, base_pose_rpy)
 
-        # 指令
         instr = log.get("instruction_unified") or log.get("instruction") or ""
 
-        # 六个相机字段均引用同一份图片路径（如你只有单相机）
         data = {
             "observation": {
                 "base_pose_xyz": base_pose_xyz,
@@ -141,7 +169,6 @@ def convert_folder_to_rlds(input_root: str, output_root: str, dataset_name: str 
             "dataset_name": dataset_name
         }
 
-        # 输出轨迹目录（使用原目录名）
         out_traj_dir = out_root / f"trajectory_{traj_dir.name}"
         out_traj_dir.mkdir(parents=True, exist_ok=True)
         with open(out_traj_dir / "data.json", "w") as f:
@@ -149,10 +176,9 @@ def convert_folder_to_rlds(input_root: str, output_root: str, dataset_name: str 
 
         n_written += 1
 
-    # 写数据集信息
     dataset_info = {
         "name": dataset_name,
-        "description": "UAV-Flow (folder) converted to RLDS-like JSON format",
+        "description": "UAV-Flow dataset converted to RLDS-like JSON format",
         "version": "1.0.0",
         "splits": {"train": {"num_trajectories": n_written}}
     }
@@ -164,9 +190,9 @@ def convert_folder_to_rlds(input_root: str, output_root: str, dataset_name: str 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser("Convert UAV-Flow folder dataset (images + log.json) to RLDS-like JSON")
-    parser.add_argument("--input_dir", type=str, required=True, help="Path to folder dataset root (contains many trajectory dirs)")
-    parser.add_argument("--output_dir", type=str, required=True, help="Path to output directory")
-    parser.add_argument("--dataset_name", type=str, default="traveluav_dataset")
+    parser.add_argument("--input_dir", type=str, default="/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/datasets/uav_flow_data", help="Path to folder dataset root (contains many trajectory dirs)")
+    parser.add_argument("--output_dir", type=str, default="/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/datasets/rlds_data", help="Path to output directory")
+    parser.add_argument("--dataset_name", type=str, default="uavflow_dataset")
     args = parser.parse_args()
 
     convert_folder_to_rlds(args.input_dir, args.output_dir, dataset_name=args.dataset_name)
