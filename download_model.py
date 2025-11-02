@@ -1,7 +1,7 @@
 from huggingface_hub import snapshot_download
 
 # 指定下载位置
-cache_dir = "/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/Fast-in-Slow/ckpt"
+cache_dir = "/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/ckpt/fis"
 # 使用 HF Mirror
 snapshot_download(
     repo_id="haosad/fisvla", 

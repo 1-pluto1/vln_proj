@@ -70,6 +70,7 @@ class DataArguments:
     input_prompt: Optional[str] = field(default=None)
     refine_prompt: Optional[bool] = field(default=True)
     mm_use_im_start_end: bool = field(default=False)
+    batchSize: int = field(default=8)
 
     
 @dataclass
@@ -81,7 +82,24 @@ class ModelArguments:
     image_processor: Optional[str] = field(default=None)
     groundingdino_config: Optional[str] = field(default=None)
     groundingdino_model_path: Optional[str] = field(default=None)
-    
+    # FiS-specific arguments
+    cuda: int = field(default=0)
+    model_action_steps: int = field(default=1)
+    hf_token: Optional[str] = field(default=None)
+    use_diff: int = field(default=1)  # 1/0 or bool
+    training_diffusion_steps: int = field(default=10)
+    llm_middle_layer: Optional[int] = field(default=None)
+    training_mode: Optional[str] = field(default=None)
+    load_pointcloud: int = field(default=0)  # 1/0 or bool
+    pointcloud_pos: Optional[str] = field(default='fast')
+    action_chunk: Optional[int] = field(default=None)
+    use_robot_state: int = field(default=0)  # 1/0 or bool
+    lang_subgoals_exist: int = field(default=0)  # 1/0 or bool
+    action_dim: int = field(default=6)
+    predict_mode: str = field(default='diff')  # ['ar','diff','diff+ar']
+    cfg_scale: float = field(default=1.0)
+    ddim_steps: int = field(default=10)
+    slow_fast_ratio: int = field(default=4)
     
 parser = transformers.HfArgumentParser((CommonArguments, ModelArguments, DataArguments))
 args, model_args, data_args = parser.parse_args_into_dataclasses()

@@ -10,7 +10,8 @@ import torch
 sys.path.append(str(Path(str(os.getcwd())).resolve()))
 from utils.logger import logger
 
-from src.model_wrapper.travel_llm import TravelModelWrapper, FiSModelWrapper
+from src.model_wrapper.travel_llm import TravelModelWrapper
+from src.model_wrapper.fis_model import FiSModelWrapper
 from src.model_wrapper.base_model import BaseModelWrapper
 from src.common.param import args, model_args, data_args
 from src.vlnce_src.env_uav import AirVLNENV

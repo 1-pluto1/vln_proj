@@ -61,5 +61,6 @@ checkpoints/
 models/
 datasets/
 ckpts/
-
+ckpt/
 .cache/
+checkpoint/
