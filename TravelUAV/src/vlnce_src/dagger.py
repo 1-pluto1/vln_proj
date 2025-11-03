@@ -10,16 +10,15 @@ import torch
 sys.path.append(str(Path(str(os.getcwd())).resolve()))
 from utils.logger import logger
 
-from src.model_wrapper.travel_llm import TravelModelWrapper
+
 from src.model_wrapper.fis_model import FiSModelWrapper
-from src.model_wrapper.base_model import BaseModelWrapper
 from src.common.param import args, model_args, data_args
 from src.vlnce_src.env_uav import AirVLNENV
 from src.vlnce_src.assist import Assist
 from src.vlnce_src.closeloop_util import DaggerBatchState, setup, CheckPort, initialize_env, is_dist_avail_and_initialized
 
 
-def collect_data(model_wrapper: BaseModelWrapper, assist: Assist, train_env: AirVLNENV, data_it=0):
+def collect_data(model_wrapper, assist: Assist, train_env: AirVLNENV, data_it=0):
     assert args.collect_type in ['dagger']
     beta = float(args.dagger_p)
     

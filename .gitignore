@@ -64,3 +64,5 @@ ckpts/
 ckpt/
 .cache/
 checkpoint/
+
+Llama-2-7b-hf/

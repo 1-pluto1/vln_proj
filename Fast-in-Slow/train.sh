@@ -3,7 +3,7 @@ export PYTHONPATH=/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/Fast-in
 export HF_HOME=/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/.cache/huggingface
 export NCCL_DEBUG=INFO
 # export NCCL_SOCKET_IFNAME=eth
-export NCCL_P2P_LEVEL=NVL
+export NCCL_P2P_LEVEL=NVL 
 export NCCL_TIMEOUT=1800
 export CUDA_VISIBLE_DEVICES=0,1,2,3
 

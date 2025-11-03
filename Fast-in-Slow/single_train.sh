@@ -2,7 +2,7 @@
 
 # parameter
 export PYTHONPATH=/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/Fast-in-Slow:/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/Fast-in-Slow/timm:$PYTHONPATH
-export HF_HOME=/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/.cache/huggingface
+# export HF_HOME=/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/.cache/huggingface
 
 # --- 单卡修改 ---
 # 移除了 NCCL 相关的环境变量，因为单卡训练不需要它们
@@ -40,7 +40,7 @@ LANG_SUBGOALS_EXIST=true
 SETTING="test_multi_key_STATE_${LOAD_STATE}_ACTION_CHUNK_${ACTION_CHUNK}_SLOW_FAST_RATIO_${SLOW_FAST_RATIO}_ddim${DIFFUSION_STEPS}_PC${LOAD_POINTCLOUD}_POS${POINTCLOUD_POS}_${TRAINING_MODE}_withARloss${LOAD_POINTCLOUD}_slow_fast_[after]_[-1]_${LLM_MIDDLE_LAYER}_fisvla_pretrain_window${FUTURE_ACTION_STEPS}"
 
 DATA_MIX=UAVDataset
-TASK=12tasks_selected_keyframe_s1f4_pc_fast_sparsechunk_1_0518
+TASK=UAV_NAV
 BATCH_SIZE=6
 EPOCHS=300
 LEARNING_RATE=2e-5
@@ -98,7 +98,7 @@ python scripts/single_train.py \
   --action_chunk ${ACTION_CHUNK} \
   --load_state ${LOAD_STATE} \
   --lang_subgoals_exist ${LANG_SUBGOALS_EXIST} \
-  --pretrained_checkpoint "/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/ckpt/fis/checkpoints/fisvla_pretrain.pt"
+  --pretrained_checkpoint "/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/ckpt/fis/models--haosad--fisvla/snapshots/d5f66f3accd4c043742cfe348431f58c5609e950/fisvla_pretrain.pt"
 
 
 

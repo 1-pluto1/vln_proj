@@ -325,7 +325,7 @@ class FiSvla(nn.Module):
             arch_specifier=arch_specifier,
             class_dropout_prob=class_dropout_prob,
             use_diff=use_diff,
-            action_dim=inferred_action_dim,
+            action_dim=action_dim,
             token_size=llm_backbone.embed_dim,
             llm_middle_layer=llm_middle_layer,
             action_tokenizer_exist=action_tokenizer_exist,
@@ -334,7 +334,6 @@ class FiSvla(nn.Module):
             pointcloud_pos=pointcloud_pos,
             action_chunk=action_chunk,
             load_state=load_state,
-            proprio_dim=inferred_proprio_dim,
             **kwargs,
         )
         
@@ -399,7 +398,7 @@ class FiSvla(nn.Module):
         fisvla = FiSvla(vlm,
                         action_tokenizer,
                         token_size = vlm.llm_backbone.llm.lm_head.in_features,
-                        action_dim = inferred_action_dim,
+                        action_dim = action_dim,
                         future_action_window_size = future_action_window_size,
                         past_action_window_size = past_action_window_size,
                         norm_stats = norm_stats,
@@ -410,7 +409,6 @@ class FiSvla(nn.Module):
                         load_state=load_state,
                         action_tokenizer_exist=action_tokenizer_exist,
                         lang_subgoals_exist=lang_subgoals_exist,
-                        proprio_dim=inferred_proprio_dim,
                         )
 
         return fisvla        

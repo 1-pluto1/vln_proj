@@ -2,17 +2,18 @@ import numpy as np
 import torch
 from PIL import Image
 from src.model_wrapper.base_model import BaseModelWrapper
-from src.model_wrapper.utils.travel_util import *
+# from src.model_wrapper.utils.travel_util import *
 from src.vlnce_src.dino_monitor_online import DinoMonitor
 import sys
-sys.path.append('/home/liusq/TravelUAV/vln_proj/Fast-in-Slow')
+from pathlib import Path
+sys.path.append('/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/Fast-in-Slow')
 from models import load_vla  # 从Fast-in-Slow导入模型加载函数
 
 
 class FiSModelWrapper(BaseModelWrapper):
     def __init__(self, model_args, data_args):
         # 使用统一的 model_load 来加载并设置设备/精度/评估模式
-        self.model = model_load(model_args)
+        self.model = self.model_load(model_args)
         self.tokenizer = self.model.vlm.llm_backbone.tokenizer
         self.image_processor = FiSImageProcessor(self.model.vision_backbone)
         self.traj_model = None # FiSvla 是端到端模型，不需要单独的 traj_model
@@ -32,7 +33,7 @@ class FiSModelWrapper(BaseModelWrapper):
         self.slow_input_ids_cache = [None] * self.batch_size
         self.slow_embed_cache = [None] * self.batch_size
 
-    def model_load(model_args):
+    def model_load(self, model_args):
         model = load_vla(
                 model_args.model_path,
                 load_for_training=False,
@@ -65,7 +66,7 @@ class FiSModelWrapper(BaseModelWrapper):
             )
         return input_ids, slow_latent_embedding
 
-    def model_predict(model_args, predict_mode, model, image, prompt, cur_robot_state=None, slow_image=None, point_cloud=None, input_ids = None, slow_latent_embedding=None):
+    def model_predict(self, model_args, predict_mode, model, image, prompt, cur_robot_state=None, slow_image=None, point_cloud=None, input_ids = None, slow_latent_embedding=None):
         if predict_mode == 'ar' or predict_mode == 'diff+ar':
             output = model.predict_action(
                     image_head_slow = slow_image,
@@ -165,7 +166,6 @@ class FiSModelWrapper(BaseModelWrapper):
     
     def eval(self):
         self.model.eval()
-        self.traj_model.eval()
         
 
     def run(self, inputs, episodes, rot_to_targets):

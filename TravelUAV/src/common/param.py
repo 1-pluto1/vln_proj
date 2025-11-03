@@ -70,7 +70,6 @@ class DataArguments:
     input_prompt: Optional[str] = field(default=None)
     refine_prompt: Optional[bool] = field(default=True)
     mm_use_im_start_end: bool = field(default=False)
-    batchSize: int = field(default=8)
 
     
 @dataclass

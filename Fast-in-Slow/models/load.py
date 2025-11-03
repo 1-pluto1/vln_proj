@@ -292,12 +292,18 @@ def load_vla(
     #   checkpoint `.pt` file, rather than the top-level run directory!
     if os.path.isfile(model_id_or_path):
         overwatch.info(f"Loading from local checkpoint path `{(checkpoint_pt := Path(model_id_or_path))}`")
-
-        # [Validate] Checkpoint Path should look like `.../<RUN_ID>/checkpoints/<CHECKPOINT_PATH>.pt`
-        assert (checkpoint_pt.suffix == ".pt") and (checkpoint_pt.parent.name == "checkpoints"), "Invalid checkpoint!"
-        run_dir = checkpoint_pt.parents[1]
-
-        # Get paths for `config.json`, `dataset_statistics.json` and pretrained checkpoint
+        assert checkpoint_pt.suffix == ".pt", "Invalid checkpoint suffix!"
+        # 优先使用 pt 所在目录；若无配置文件则向上回溯
+        run_dir = None
+        if (checkpoint_pt.parent / "config.json").exists() and (checkpoint_pt.parent / "dataset_statistics.json").exists():
+            run_dir = checkpoint_pt.parent
+        else:
+            for anc in checkpoint_pt.parents:
+                if (anc / "config.json").exists() and (anc / "dataset_statistics.json").exists():
+                    run_dir = anc
+                    break
+        if run_dir is None:
+            raise AssertionError("Missing `config.json` / `dataset_statistics.json` near checkpoint!")
         config_json, dataset_statistics_json = run_dir / "config.json", run_dir / "dataset_statistics.json"
         assert config_json.exists(), f"Missing `config.json` for `{run_dir = }`"
         assert dataset_statistics_json.exists(), f"Missing `dataset_statistics.json` for `{run_dir = }`"

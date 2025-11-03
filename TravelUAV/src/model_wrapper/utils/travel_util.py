@@ -17,7 +17,7 @@ sys.path.append(str(Path(__file__).resolve().parents[3]/ 'Model' / 'LLaMA-UAV'))
 from llamavid.model.builder import load_pretrained_model
 from llamavid.model.vis_traj_arch import VisionTrajectoryGenerator
 from peft import PeftModel
-from mm_utils import tokenizer_image_token, get_model_name_from_path
+from .mm_utils import tokenizer_image_token, get_model_name_from_path
 from llamavid.constants import (
     IGNORE_INDEX, DEFAULT_IMAGE_TOKEN, DEFAULT_IM_START_TOKEN, DEFAULT_IM_END_TOKEN,
     WAYPOINT_INPUT_TOKEN, WAYPOINT_LABEL_TOKEN, DEFAULT_HISTORY_TOKEN, DEFAULT_WP_TOKEN
