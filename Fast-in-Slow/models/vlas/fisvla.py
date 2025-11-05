@@ -382,19 +382,6 @@ class FiSvla(nn.Module):
             vlm.requires_grad_(False)
             vlm.eval()
 
-        # Initialize FiSvla
-        # Infer action and proprio dims from norm_stats if available
-        inferred_action_dim = action_dim
-        inferred_proprio_dim = None
-        if norm_stats is not None:
-            try:
-                key = next(iter(norm_stats.keys()))
-                inferred_action_dim = len(norm_stats[key]["action"]["q01"]) if "action" in norm_stats[key] else action_dim
-                if "proprio" in norm_stats[key] and "q01" in norm_stats[key]["proprio"]:
-                    inferred_proprio_dim = len(norm_stats[key]["proprio"]["q01"]) 
-            except Exception:
-                pass
-
         fisvla = FiSvla(vlm,
                         action_tokenizer,
                         token_size = vlm.llm_backbone.llm.lm_head.in_features,
@@ -428,7 +415,7 @@ class FiSvla(nn.Module):
         cfg_scale: float = 1.5, 
         use_ddim: bool = False,
         num_ddim_steps: int = 5,
-        action_dim: int = 7,
+        action_dim: int = 6,
         cur_robot_state: Optional[str] = None,
         multi_view: bool = True,
         predict_mode: str = "diff+ar",
@@ -452,7 +439,7 @@ class FiSvla(nn.Module):
         device = self.vlm.device
         autocast_dtype = self.vlm.llm_backbone.half_precision_dtype
         
-        message = f"What action should the robot take to {instruction.lower()}?"
+        message = f"What action should the uav take to {instruction.lower()}?"
         prompt_builder = self.vlm.get_prompt_builder()
         prompt_builder.add_turn(role="human", message=message)
         prompt_text = prompt_builder.get_prompt()

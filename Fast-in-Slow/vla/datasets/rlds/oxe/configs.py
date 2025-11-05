@@ -683,7 +683,7 @@ OXE_DATASET_CONFIGS = {
         "action_encoding": ActionEncoding.EEF_POS,
     },
 
-    "UAVDataset": {
+    "uav_dataset": {
         "image_obs_keys": {"right_fast": "image_right_fast", "left_fast": "image_left_fast", "head_fast": "image_head_fast", "right_slow": "image_right_slow", "left_slow": "image_left_slow", "head_slow": "image_head_slow"},
         "depth_obs_keys": {"primary": None, "secondary": None, "wrist": None},
         "state_obs_keys": ["base_pose_xyz", "base_pose_rpy"],

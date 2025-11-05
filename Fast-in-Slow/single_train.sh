@@ -4,19 +4,8 @@
 export PYTHONPATH=/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/Fast-in-Slow:/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/Fast-in-Slow/timm:$PYTHONPATH
 # export HF_HOME=/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/.cache/huggingface
 
-# --- 单卡修改 ---
-# 移除了 NCCL 相关的环境变量，因为单卡训练不需要它们
-# export NCCL_DEBUG=INFO
-# export NCCL_SOCKET_IFNAME=eth
-# export NCCL_P2P_LEVEL=NVL
-# export NCCL_TIMEOUT=1800
-
-# --- 关键修改 ---
-# 指定你想要使用的一块 *健康* 的 GPU。
-# 根据我们之前的诊断，0, 1, 2, 3, 4, 5, 7 都是可选项。
 export CUDA_VISIBLE_DEVICES=0
 
-# UAV特定参数
 USE_UAV_DATASET=true
 
 TRAINING_MODE='async'        # a very powerful control mode, see "models/vlms/prismatic.py"
@@ -39,8 +28,8 @@ LANG_SUBGOALS_EXIST=true
 
 SETTING="test_multi_key_STATE_${LOAD_STATE}_ACTION_CHUNK_${ACTION_CHUNK}_SLOW_FAST_RATIO_${SLOW_FAST_RATIO}_ddim${DIFFUSION_STEPS}_PC${LOAD_POINTCLOUD}_POS${POINTCLOUD_POS}_${TRAINING_MODE}_withARloss${LOAD_POINTCLOUD}_slow_fast_[after]_[-1]_${LLM_MIDDLE_LAYER}_fisvla_pretrain_window${FUTURE_ACTION_STEPS}"
 
-DATA_MIX=UAVDataset
-TASK=UAV_NAV
+DATA_MIX=uav_dataset
+TASK=uav_dataset
 BATCH_SIZE=6
 EPOCHS=300
 LEARNING_RATE=2e-5
@@ -51,16 +40,10 @@ DATA_ROOT="/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/datasets/rlds_
 EXP_ROOT=/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/Fast-in-Slow/exp
 MODEL_SAVE_NUM=3
 
-# --- 单卡修改 ---
-# 将 GPU 数量改为 1
 NUM_GPUS=1
 NODES=1
-# MASTER_ADDR="127.0.0.1" # DDP 参数，不再需要
-# NODE_RANK=0             # DDP 参数，不再需要
 
 
-# --- 单卡修改 ---
-# 将 'torchrun --nnodes=...' 替换为 'python'
 # 移除了 --vla.expected_world_size 参数
 python scripts/single_train.py \
   --vla.type prism-dinosiglip-224px+oxe+diffusion \

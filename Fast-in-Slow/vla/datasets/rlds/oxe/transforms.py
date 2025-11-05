@@ -966,5 +966,5 @@ OXE_STANDARDIZATION_TRANSFORMS = {
     "rlbench_bi": identity_transform,
     "rlbench_bi_joint": identity_transform,
     "rtx_dataset": identity_transform,
-    "UAVDataset": uav_dataset_transform,
+    "uav_dataset": uav_dataset_transform,
 }
