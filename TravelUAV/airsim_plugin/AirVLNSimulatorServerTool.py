@@ -241,7 +241,7 @@ AIRSIM_SETTINGS_TEMPLATE = {
 env_exec_path_dict = {
     "NYCEnvironmentMegapa": {
         'bash_name': 'NYCEnvironmentMegapa',
-        'exec_path': './closeloop_envs',
+        'exec_path': 'closeloop_envs',
     },
     "TropicalIsland": {
         'bash_name': 'TropicalIsland',
@@ -453,18 +453,33 @@ class EventHandler(object):
         self.scene_used_ports = []
         
         self.port_to_scene = {}
+        import logging
+        self.logger = logging.getLogger("AirVLNServer.EventHandler")
+        if not self.logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter(
+                "%(asctime)s %(levelname)s [%(name)s] (%(filename)s:%(lineno)d) %(message)s",
+                "%Y-%m-%d %H:%M:%S"
+            ))
+            self.logger.addHandler(handler)
+        self.logger.setLevel(logging.DEBUG)
+        self.logger.debug("Initialized EventHandler: ports=%d, gpus_pool_size=%d", len(self.scene_ports), len(self.scene_gpus))
 
     def ping(self) -> bool:
+        self.logger.debug("ping() called")
         return True
 
     def _open_scenes(self, ip: str , scen_id_gpu_list: list):
+        self.logger.info("_open_scenes start: ip=%s, scen_count=%d", ip, len(scen_id_gpu_list))
         print(
             "{}\t关闭场景中".format(
                 str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())),
             )
         )
+        self.logger.debug("About to kill previously used ports: %s", self.scene_used_ports)
         KillPorts(self.scene_used_ports)
         self.scene_used_ports = []
+        self.logger.debug("scene_used_ports cleared")
         print(
             "{}\t已关闭所有场景".format(
                 str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())),
@@ -474,22 +489,34 @@ class EventHandler(object):
         # Occupied airsim port 1
         ports = []
         index = 0
+        self.logger.debug("Begin selecting free ports from candidate list")
         while len(ports) < len(scen_id_gpu_list):
             pid = FromPortGetPid(self.scene_ports[index])
+            self.logger.debug("Check port=%d, pid=%s", self.scene_ports[index], str(pid))
             if pid is None or not isinstance(pid, int):
                 ports.append(self.scene_ports[index])
+                self.logger.debug("Port selected: %d", self.scene_ports[index])
             index += 1
+        self.logger.info("Selected ports: %s", ports)
 
         KillPorts(ports)
+        self.logger.debug("Ensured selected ports are free: %s", ports)
 
         # Occupied GPU 2
         gpus = [scen_id_gpu_list[index][-1] for index in range(len(scen_id_gpu_list))]
+        self.logger.info("Target GPU list: %s", gpus)
         print(scen_id_gpu_list)
 
         # search scene path 3
         choose_env_exe_paths = []
         for scen_id, gpu_id in scen_id_gpu_list:
+            if isinstance(scen_id, bytes): # 增加一个安全检查
+                    scen_id = scen_id.decode('utf-8')
+            self.logger.debug("Resolve env path for scen_id=%s, gpu_id=%s", str(scen_id), str(gpu_id))
+
+
             if str(scen_id).lower() == 'none':
+                self.logger.warning("scen_id is 'none'; will skip launching scene on gpu_id=%s", str(gpu_id))
                 choose_env_exe_paths.append(None)
                 continue
             
@@ -497,6 +524,7 @@ class EventHandler(object):
                 env_info = env_exec_path_dict.get(scen_id)
                 res = os.path.join(args.root_path, env_info['exec_path'], env_info['bash_name'] + '.sh')
                 choose_env_exe_paths.append(res)
+                self.logger.debug("Found exact scen_id mapping: %s -> %s", scen_id, res)
             else:
                 prefix_flag = False
                 for map_name in env_exec_path_dict.keys():
@@ -505,33 +533,46 @@ class EventHandler(object):
                         env_info = env_exec_path_dict.get(map_name)
                         res = os.path.join(args.root_path, env_info['exec_path'], env_info['bash_name'] + '.sh')
                         choose_env_exe_paths.append(res)
+                        self.logger.debug("Found prefix mapping: %s ~> %s", map_name, res)
                 if not prefix_flag:
+                    self.logger.error("Cannot find scene file for scen_id=%s", scen_id)
                     print(f'can not find scene file: {scen_id}')
                     raise KeyError
 
         p_s = []
         for index, (scen_id, gpu_id) in enumerate(scen_id_gpu_list):
             # airsim settings 4
+            self.logger.debug("Create AirSim settings for scen_id=%s, gpu_id=%s, port=%d", str(scen_id), str(gpu_id), int(ports[index]))
             airsim_settings = create_drones()
             airsim_settings['ApiServerPort'] = int(ports[index])
             self.port_to_scene[ports[index]] = (scen_id, gpu_id)
             airsim_settings_write_content = json.dumps(airsim_settings)
-            if not os.path.exists(str(CWD_DIR / 'settings' / str(ports[index]))):
-                os.makedirs(str(CWD_DIR / 'settings' / str(ports[index])), exist_ok=True)
-            with open(str(CWD_DIR / 'settings' / str(ports[index]) / 'settings.json'), 'w', encoding='utf-8') as dump_f:
+            settings_dir = str(CWD_DIR / 'settings' / str(ports[index]))
+            settings_path = str(CWD_DIR / 'settings' / str(ports[index]) / 'settings.json')
+            if not os.path.exists(settings_dir):
+                os.makedirs(settings_dir, exist_ok=True)
+                self.logger.debug("Created settings directory: %s", settings_dir)
+            with open(settings_path, 'w', encoding='utf-8') as dump_f:
                 dump_f.write(airsim_settings_write_content)
+            self.logger.info("Wrote AirSim settings: %s (size=%d)", settings_path, len(airsim_settings_write_content))
 
             # open scene 5
             if choose_env_exe_paths[index] is None:
+                self.logger.info("Skipping scene launch for scen_id=%s (None path), port=%d", str(scen_id), int(ports[index]))
                 p_s.append(None)
                 continue
             else:
-                subprocess_execute = "bash {} -RenderOffscreen -NoSound -NoVSync -GraphicsAdapter={} -settings={} ".format(
+                scene_log_dir = CWD_DIR / 'settings' / str(ports[index])
+                os.makedirs(scene_log_dir, exist_ok=True) 
+                scene_log_path = scene_log_dir / 'scene_output.log'
+                subprocess_execute = "bash {} -RenderOffscreen -NoSound -NoVSync -GraphicsAdapter={} -settings={} > {} 2>&1".format(              
                     choose_env_exe_paths[index],
                     gpu_id,
                     str(CWD_DIR / 'settings' / str(ports[index]) / 'settings.json'),
+                    str(scene_log_path)
                 )
                 time.sleep(1)
+                self.logger.debug("Subprocess command: %s", subprocess_execute)
                 print(subprocess_execute)
 
                 try:
@@ -541,7 +582,9 @@ class EventHandler(object):
                         shell=True,
                     )
                     p_s.append(p)
+                    self.logger.info("Launched scene: scen_id=%s, gpu_id=%s, port=%d, pid=%s", str(scen_id), str(gpu_id), int(ports[index]), str(p.pid if p else None))
                 except Exception as e:
+                    self.logger.exception("Failed to launch scene: scen_id=%s, gpu_id=%s, port=%d", str(scen_id), str(gpu_id), int(ports[index]))
                     print(
                         "{}\t{}".format(
                             str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())),
@@ -550,17 +593,22 @@ class EventHandler(object):
                     )
                     return False, None
                 except:
+                    self.logger.exception("Unknown error launching scene")
                     return False, None
         time.sleep(10)
         self.scene_used_ports += copy.deepcopy(ports)
+        self.logger.info("Scenes started; tracking ports: %s", self.scene_used_ports)
         
         print("finished", ip)
+        self.logger.info("_open_scenes finished: ip=%s", ip)
 
         return True, (ip, ports)
     
     def reopen_scene_from_port(self, port):
+        self.logger.info("Reopen single scene from port: %d", int(port))
 
         KillPorts([port])
+        self.logger.debug("Killed existing process on port: %d", int(port))
         
         scene_id, gpu_id = self.port_to_scene[port]
         env_info = env_exec_path_dict.get(scene_id)
@@ -571,6 +619,7 @@ class EventHandler(object):
                     str(CWD_DIR / 'settings' / str(port) / 'settings.json'),
                 )
         time.sleep(1)
+        self.logger.debug("Subprocess command (reopen): %s", subprocess_execute)
         print(subprocess_execute)
         
         p = subprocess.Popen(
@@ -578,24 +627,29 @@ class EventHandler(object):
                         stdin=None, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT,
                         shell=True,
                     )
+        self.logger.info("Reopened scene: port=%d, scen_id=%s, gpu_id=%s, pid=%s", int(port), str(scene_id), str(gpu_id), str(p.pid if p else None))
         
     def reopen_scenes(self, ip: str, scen_id_gpu_list: list):
+        self.logger.info("START reopen_scenes: ip=%s, scen_count=%d", ip, len(scen_id_gpu_list))
         print(
             "{}\tSTART reopen_scenes".format(
                 str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())),
             )
         )
         try:
+            self.logger.debug("scen_id_gpu_list raw: %s", str(scen_id_gpu_list))
             print(scen_id_gpu_list)
             ip = ip
             for item in scen_id_gpu_list:
                 try:
                     item[0] = item[0]
                 except:
+                    self.logger.warning("Failed to normalize scen_id in item: %s", str(item))
                     pass
                 # item[0] = item[0].decode('utf-8')
             result = self._open_scenes(ip, scen_id_gpu_list)
         except Exception as e:
+            self.logger.exception("Error in reopen_scenes")
             print(e)
             exe_type, exe_value, exe_traceback = sys.exc_info()
             exe_info_list = traceback.format_exception(
@@ -608,9 +662,11 @@ class EventHandler(object):
                 str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())),
             )
         )
+        self.logger.info("END reopen_scenes: ip=%s, success=%s", ip, str(result[0] if isinstance(result, tuple) else result))
         return result
 
     def close_scenes(self, ip: str) -> bool:
+        self.logger.info("START close_scenes: ip=%s", ip)
         print(
             "{}\tSTART close_scenes".format(
                 str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())),
@@ -618,11 +674,14 @@ class EventHandler(object):
         )
 
         try:
+            self.logger.debug("KillPorts called with: %s", self.scene_used_ports)
             KillPorts(self.scene_used_ports)
             self.scene_used_ports = []
+            self.logger.info("All scenes closed, scene_used_ports cleared")
 
             result = True
         except Exception as e:
+            self.logger.exception("Error during close_scenes")
             print(e)
             result = False
 
@@ -631,6 +690,7 @@ class EventHandler(object):
                 str(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())),
             )
         )
+        self.logger.info("END close_scenes: ip=%s, result=%s", ip, str(result))
         return result
 
 

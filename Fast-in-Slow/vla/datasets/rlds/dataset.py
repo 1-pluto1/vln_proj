@@ -212,13 +212,53 @@ def make_dataset_from_rlds(
 
     builder = tfds.builder(name, data_dir=data_dir)
 
+
+# ================== ⬇️ 在这里添加构建 decoders 的逻辑 ⬇️ ==================
+    
+    # 1. 获取 'steps' 序列 *内部* 的所有特征
+    steps_features = builder.info.features["steps"].feature
+
+    # 2. 为 'steps' 内部的所有键创建默认解码器 (使用 None 表示默认解码)
+    steps_decoders = {key: None for key in steps_features.keys()}
+
+    # 3. 单独处理 'observation' 子字典
+    if "observation" in steps_decoders:
+        obs_features = steps_features["observation"]
+        obs_decoders = {key: None for key in obs_features.keys()}
+
+        # 4. 根据你的配置，*选择性地跳过* 'observation' 内部的键
+        #    (这里的 state_obs_keys, load_pointcloud, depth_obs_keys 都是从函数参数中传入的)
+        if not state_obs_keys and "proprio" in obs_decoders:
+            obs_decoders["proprio"] = tfds.decode.SkipDecoding()
+        if load_pointcloud is None and "point_cloud" in obs_decoders:
+            obs_decoders["point_cloud"] = tfds.decode.SkipDecoding()
+        if not depth_obs_keys:
+            for key in obs_features.keys():
+                if key.startswith("depth_") and key in obs_decoders:
+                    obs_decoders[key] = tfds.decode.SkipDecoding()
+        
+        # 5. 将配置好的 'observation' 解码器放回 'steps' 解码器
+        steps_decoders["observation"] = obs_decoders
+
+    # 6. 构建 *最终的* decoders 字典
+    final_decoders = {}
+    for key in builder.info.features.keys():
+        if key == "steps":
+            # 关键：只传递嵌套的指令字典
+            final_decoders[key] = steps_decoders
+        else:
+            # 跳过 'episode_metadata' 等其他顶层键
+            final_decoders[key] = tfds.decode.SkipDecoding()
+
+
+
     # load or compute dataset statistics
     if isinstance(dataset_statistics, str):
         with tf.io.gfile.GFile(dataset_statistics, "r") as f:
             dataset_statistics = json.load(f)
     elif dataset_statistics is None:
         full_dataset = dl.DLataset.from_rlds(
-            builder, split="all", shuffle=False, num_parallel_reads=num_parallel_reads
+            builder, split="all", shuffle=False, num_parallel_reads=num_parallel_reads, decoders=final_decoders
         ).traj_map(restructure, num_parallel_calls)
         # tries to load from cache, otherwise computes on the fly
         dataset_statistics = get_dataset_statistics(
@@ -258,7 +298,7 @@ def make_dataset_from_rlds(
     if load_all_data_for_training and train:
         split = "train"
 
-    dataset = dl.DLataset.from_rlds(builder, split=split, shuffle=shuffle, num_parallel_reads=num_parallel_reads)
+    dataset = dl.DLataset.from_rlds(builder, split=split, shuffle=shuffle, num_parallel_reads=num_parallel_reads, decoders=final_decoders)
 
     dataset = dataset.traj_map(restructure, num_parallel_calls)
     dataset = dataset.traj_map(

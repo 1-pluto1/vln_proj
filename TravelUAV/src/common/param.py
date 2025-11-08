@@ -71,7 +71,6 @@ class DataArguments:
     refine_prompt: Optional[bool] = field(default=True)
     mm_use_im_start_end: bool = field(default=False)
 
-    
 @dataclass
 class ModelArguments:
     model_path: Optional[str] = field(default="facebook/opt-350m")

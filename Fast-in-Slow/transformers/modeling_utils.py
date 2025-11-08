@@ -3548,7 +3548,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin, GenerationMixin, PushToHubMix
 
         with ContextManagers(init_contexts):
             # Let's make sure we don't run the init function of buffer modules
-            model = cls(config, fuse = fuse, *model_args, **model_kwargs)
+            model = cls(config, *model_args, **model_kwargs)
 
         # make sure we use the model's config since the __init__ call might have copied it
         config = model.config

@@ -33,3 +33,5 @@ src/model_wrapper/utils/GroundingDINO/groundingdino_swint_ogc.pth
 src/model_wrapper/utils/__pycache__
 
 TravelUAV_env_unzip/
+
+logs/

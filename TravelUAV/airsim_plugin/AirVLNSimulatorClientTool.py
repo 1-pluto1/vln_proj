@@ -170,74 +170,125 @@ class AirVLNSimulatorClientTool:
         return
 
     def run_call(self, airsim_timeout: int=300) -> None:
+        import logging
+        try:
+            fmt = logging.Formatter(
+                "%(asctime)s %(levelname)s [%(name)s] (%(filename)s:%(lineno)d) %(message)s",
+                "%Y-%m-%d %H:%M:%S"
+            )
+            if not logger.handlers:
+                h = logging.StreamHandler()
+                h.setFormatter(fmt)
+                logger.addHandler(h)
+            else:
+                for h in logger.handlers:
+                    h.setFormatter(fmt)
+            logger.setLevel(logging.DEBUG)
+        except Exception as _e:
+            print(f"logger configure failed: {_e}")
+        logger.debug("run_call invoked, airsim_timeout=%d", airsim_timeout)
+    
         socket_clients = []
         for index, item in enumerate(self.machines_info):
+            addr = f"{item['MACHINE_IP']}:{item['SOCKET_PORT']}"
+            logger.debug("Building socket client #%d to %s", index, addr)
             socket_clients.append(
                 msgpackrpc.Client(msgpackrpc.Address(item['MACHINE_IP'], item['SOCKET_PORT']), timeout=300)
             )
-
-        for socket_client in socket_clients:
-            if not self._confirmSocketConnection(socket_client):
-                logger.error('cannot establish socket')
+        logger.info("Constructed %d socket clients", len(socket_clients))
+    
+        for i, socket_client in enumerate(socket_clients):
+            ok = self._confirmSocketConnection(socket_client)
+            logger.debug("Confirm socket client #%d (%s:%s): %s",
+                         i, socket_client.address._host, socket_client.address._port, ok)
+            if not ok:
+                logger.error('cannot establish socket to %s:%s', socket_client.address._host, socket_client.address._port)
                 raise Exception('cannot establish socket')
-
+    
         self.socket_clients = socket_clients
-
-
+        logger.debug("self.socket_clients set")
+    
         before = time.time()
+        logger.debug("Closing existing AirSim connections")
         self._closeConnection()
-
+        logger.debug("Closed existing AirSim connections")
+    
         def _run_command(index, socket_client: msgpackrpc.Client):
-            logger.info(f'开始打开场景，机器{index}: {socket_client.address._host}:{socket_client.address._port}')
-            logger.info(f'gpus: {self.machines_info[index]}')
-            result = socket_client.call('reopen_scenes', socket_client.address._host, list(zip(self.machines_info[index]['open_scenes'], self.machines_info[index]['gpus'])))
+            logger.info("开始打开场景，机器%d: %s:%s", index, socket_client.address._host, socket_client.address._port)
+            logger.debug("machine info #%d: %s", index, str(self.machines_info[index]))
+            open_scenes = self.machines_info[index]['open_scenes']
+            gpus = self.machines_info[index]['gpus']
+            logger.debug("open_scenes=%s, gpus=%s", str(open_scenes), str(gpus))
+            try:
+                result = socket_client.call('reopen_scenes', socket_client.address._host, list(zip(open_scenes, gpus)))
+                logger.debug("reopen_scenes result: %s", str(result))
+            except Exception as e:
+                logger.exception("RPC调用失败: reopen_scenes 机器%d %s:%s", index, socket_client.address._host, socket_client.address._port)
+                raise
+    
             if result[0] == False:
-                logger.error(f'打开场景失败，机器: {socket_client.address._host}:{socket_client.address._port}')
+                logger.error("打开场景失败，机器: %s:%s", socket_client.address._host, socket_client.address._port)
                 raise Exception('打开场景失败')
             assert len(result[1]) == 2, '打开场景失败'
+            logger.debug("等待 AirSim 连接...")
             print('waiting for airsim connection...')
-            time.sleep(3 * len(self.machines_info[index]['open_scenes']) + 35)
+            wait_secs = 3 * len(open_scenes) + 35
+            logger.debug("计算等待时长: %d 秒 (场景数=%d)", wait_secs, len(open_scenes))
+            time.sleep(wait_secs)
             ip = result[1][0]
+            if isinstance(ip, bytes):
+                ip = ip.decode('utf-8')
             ports = result[1][1]
+            logger.debug("返回的 ip=%s, ports=%s", str(ip), str(ports))
             self.airsim_ip = ip
             self.airsim_ports = ports
             assert str(ip) == str(socket_client.address._host), '打开场景失败'
-            assert len(ports) == len(self.machines_info[index]['open_scenes']), '打开场景失败'
+            assert len(ports) == len(open_scenes), '打开场景失败'
             for i, port in enumerate(ports):
-                if self.machines_info[index]['open_scenes'][i] is None:
+                if open_scenes[i] is None:
+                    logger.info("跳过 AirSim 客户端创建: 场景 index=%d 为 None，端口=%s", i, str(port))
                     self.airsim_clients[index][i] = None
                 else:
                     self.airsim_clients[index][i] = airsim.MultirotorClient(ip=ip, port=port, timeout_value=airsim_timeout)
                     print(port)
-
-            logger.info(f'打开场景完毕，机器{index}: {socket_client.address._host}:{socket_client.address._port}')
+    
+            logger.info("打开场景完毕，机器%d: %s:%s", index, socket_client.address._host, socket_client.address._port)
             return ports
-
+    
         threads = []
         thread_results = []
+        logger.debug("创建线程数: %d", len(socket_clients))
         for index, socket_client in enumerate(socket_clients):
+            logger.debug("准备线程 #%d for %s:%s", index, socket_client.address._host, socket_client.address._port)
             threads.append(
                 MyThread(_run_command, (index, socket_client))
             )
         for thread in threads:
             thread.setDaemon(True)
+            logger.debug("启动线程: %s", str(thread))
             thread.start()
         for thread in threads:
+            logger.debug("等待线程结束: %s", str(thread))
             thread.join()
         for thread in threads:
-            thread.get_result()
+            r = thread.get_result()
             thread_results.append(thread.flag_ok)
+            logger.debug("线程结果: flag_ok=%s, return=%s", str(thread.flag_ok), str(r))
         threads = []
         
         if not (np.array(thread_results) == True).all():
+            logger.error("有线程启动场景失败: %s", str(thread_results))
             raise Exception('打开场景失败')
-
+    
         after = time.time()
         diff = after - before
-        logger.info(f"启动时间：{diff}")
-
-        assert self._confirmConnection(), 'server connect failed'
+        logger.info("启动时间：%s", diff)
+    
+        conn_ok = self._confirmConnection()
+        logger.debug("确认客户端连接状态: %s", conn_ok)
+        assert conn_ok, 'server connect failed'
         self._closeSocketConnection()
+        logger.debug("已关闭 socket 连接")
     
     def collect_DDP(self, data_dir, workers):
         def init_worker(index, lock):
@@ -633,5 +684,5 @@ class AirVLNSimulatorClientTool:
         if not (np.array(thread_results) == True).all():
             logger.error('getSensorInfo failed.')
             return None
-        return results 
+        return results
 

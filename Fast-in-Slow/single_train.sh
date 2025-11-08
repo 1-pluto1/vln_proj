@@ -56,7 +56,7 @@ python scripts/single_train.py \
   --vla.epochs ${EPOCHS} \
   --vla.freeze_vision_backbone ${FREEZE_VISON} \
   --vla.freeze_llm_backbone ${FREEZE_LLM} \
-  --data_root_dir ${DATA_ROOT}/${TASK} \
+  --data_root_dir ${DATA_ROOT} \
   --run_root_dir ${EXP_ROOT} \
   --run_id exp_${TASK}_${SETTING} \
   --image_aug false \
