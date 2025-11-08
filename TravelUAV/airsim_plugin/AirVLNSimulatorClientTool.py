@@ -391,7 +391,7 @@ class AirVLNSimulatorClientTool:
                 if new_distance > distance:
                     results.append({'sensors': {'state': state_info, 'imu': imu_info}})
                     current_idx += 1
-                    if current_idx == target_idx:
+                    if current_idx == target_idx or current_idx >= len(path):
                         airsim_client.simPause(True)
                         break
                     else:

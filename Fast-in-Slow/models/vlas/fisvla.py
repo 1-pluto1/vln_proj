@@ -415,7 +415,7 @@ class FiSvla(nn.Module):
         cfg_scale: float = 1.5, 
         use_ddim: bool = False,
         num_ddim_steps: int = 5,
-        action_dim: int = 6,
+        action_dim: int = 7,
         cur_robot_state: Optional[str] = None,
         multi_view: bool = True,
         predict_mode: str = "diff+ar",
@@ -849,6 +849,7 @@ class FiSvla(nn.Module):
             return actions
         
         def prepare_diffusion():
+            action_dim = 7
             noise = torch.randn(1, self.action_chunk, action_dim, device=device)
             using_cfg = cfg_scale > 1.0
             

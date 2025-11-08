@@ -86,7 +86,6 @@ def collect_data(model_wrapper, assist: Assist, train_env: AirVLNENV, data_it=0)
                     logger.debug(f"{name}=None")
                     return
                 if full:
-                    # 始终输出完整内容（含大数组/张量）
                     try:
                         v = val
                         if hasattr(v, 'detach') and hasattr(v, 'cpu'):
@@ -141,7 +140,7 @@ def collect_data(model_wrapper, assist: Assist, train_env: AirVLNENV, data_it=0)
             if env_batchs is None:
                 logger.warning('collect_data: train_env.batch is None, stop collecting')
                 break
-            _dump_var("env_batchs", env_batchs)
+            # _dump_var("env_batchs", env_batchs)
             _dump_var("train_env.batch_size", train_env.batch_size)
             _dump_var("train_env.index_data", getattr(train_env, 'index_data', None))
 
@@ -154,18 +153,18 @@ def collect_data(model_wrapper, assist: Assist, train_env: AirVLNENV, data_it=0)
             _dump_var("state.target_positions(init)", getattr(dagger_batch_state_manager, 'target_positions', None))
 
             outputs = train_env.reset()
-            _dump_var("env.reset.outputs", outputs)
+            # _dump_var("env.reset.outputs", outputs)
             logger.debug(f"collect_data(env.reset): index_data={getattr(train_env, 'index_data', None)}")
 
             dagger_batch_state_manager.update_from_env_output(outputs)
-            _dump_var("state.target_positions(after_reset)", getattr(dagger_batch_state_manager, 'target_positions', None), full=True)
-            _dump_var("state.object_infos(after_reset)", getattr(dagger_batch_state_manager, 'object_infos', None), full=True)
-            _dump_var("state.trajs(after_reset)", getattr(dagger_batch_state_manager, 'trajs', None), full=True)
-            _dump_var("state.episodes(after_reset)", getattr(dagger_batch_state_manager, 'episodes', None), full=True)
+            # _dump_var("state.target_positions(after_reset)", getattr(dagger_batch_state_manager, 'target_positions', None))
+            # _dump_var("state.object_infos(after_reset)", getattr(dagger_batch_state_manager, 'object_infos', None))
+            # _dump_var("state.trajs(after_reset)", getattr(dagger_batch_state_manager, 'trajs', None))
+            # _dump_var("state.episodes(after_reset)", getattr(dagger_batch_state_manager, 'episodes', None))
 
             inputs, rot_to_targets = model_wrapper.prepare_inputs(dagger_batch_state_manager.episodes, dagger_batch_state_manager.target_positions)
-            _dump_var("inputs", inputs)
-            _dump_var("rot_to_targets", rot_to_targets)
+            # _dump_var("inputs", inputs)
+            # _dump_var("rot_to_targets", rot_to_targets)
         
             # closeloop steps
             for t in range(int(args.maxWaypoints) + 1):
@@ -188,7 +187,14 @@ def collect_data(model_wrapper, assist: Assist, train_env: AirVLNENV, data_it=0)
                     for i in range(len(choose_teacher)):
                         if choose_teacher[i] or dagger_batch_state_manager.need_teacher[i]:
                             _dump_var(f"teacher_action[{i}]", dagger_batch_state_manager.episodes[i][-1]['teacher_action'])
-                            refined_waypoints[i] = dagger_batch_state_manager.episodes[i][-1]['teacher_action']
+
+                            teacher_path = dagger_batch_state_manager.episodes[i][-1]['teacher_action']
+
+                            teacher_first_point = teacher_path[0]  
+                            teacher_first_point_np = np.array(teacher_first_point)  
+                            teacher_action_reshaped = teacher_first_point_np[np.newaxis, :]  
+
+                            refined_waypoints[i] = teacher_action_reshaped
 
                     train_env.makeActions(refined_waypoints)
                     _dump_var("actions_applied.last", refined_waypoints[-1] if _safe_len(refined_waypoints) else None)

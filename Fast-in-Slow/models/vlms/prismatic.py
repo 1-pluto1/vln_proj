@@ -1194,25 +1194,39 @@ class PrismaticVLM(VLM):
             )
         else:
             raise ValueError("No dict in pixel values!!!")
-        
-        point_cloud = point_cloud.to(multimodal_indices.device) 
-        pointcloud_projected_patch_embeddings = self.get_pointcloud_embedding(point_cloud)
+
+
 
         selected_hidden_states = slow_latent_embedding
+
+        if point_cloud is not None:
+            point_cloud = point_cloud.to(multimodal_indices.device) 
+            pointcloud_projected_patch_embeddings = self.get_pointcloud_embedding(point_cloud)
+            if self.load_state:
+                proprio = self.proprio_embedder(proprio)
+            if self.use_diff and not gen_discret_action:
+                x = self.x_embedder(x)
+                t = self.t_embedder(t).unsqueeze(1)
+
+            slow_llm_embeddings = torch.cat([
+                selected_hidden_states[:, :1+(slow_latent_embedding.shape[1]-input_ids.shape[1])],
+                pointcloud_projected_patch_embeddings,
+                fast_projected_patch_embeddings, 
+                selected_hidden_states[:, 1+(slow_latent_embedding.shape[1]-input_ids.shape[1]):],
+            ], dim=1)
+        else:
+            if self.load_state:
+                proprio = self.proprio_embedder(proprio)
+            if self.use_diff and not gen_discret_action:
+                x = self.x_embedder(x)
+                t = self.t_embedder(t).unsqueeze(1)
+
+            slow_llm_embeddings = torch.cat([
+                selected_hidden_states[:, :1+(slow_latent_embedding.shape[1]-input_ids.shape[1])],
+                fast_projected_patch_embeddings, 
+                selected_hidden_states[:, 1+(slow_latent_embedding.shape[1]-input_ids.shape[1]):],
+            ], dim=1)
         
-        if self.load_state:
-            proprio = self.proprio_embedder(proprio)
-        if self.use_diff and not gen_discret_action:
-            x = self.x_embedder(x)
-            t = self.t_embedder(t).unsqueeze(1)
-
-        slow_llm_embeddings = torch.cat([
-            selected_hidden_states[:, :1+(slow_latent_embedding.shape[1]-input_ids.shape[1])],
-            pointcloud_projected_patch_embeddings,
-            fast_projected_patch_embeddings, 
-            selected_hidden_states[:, 1+(slow_latent_embedding.shape[1]-input_ids.shape[1]):],
-        ], dim=1)
-
         last_true_indices = []
         multimodal_embeddings= []
         for indice in multimodal_indices:

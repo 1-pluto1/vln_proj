@@ -93,7 +93,7 @@ class ModelArguments:
     action_chunk: Optional[int] = field(default=None)
     use_robot_state: int = field(default=0)  # 1/0 or bool
     lang_subgoals_exist: int = field(default=0)  # 1/0 or bool
-    action_dim: int = field(default=6)
+    action_dim: int = field(default=7)
     predict_mode: str = field(default='diff')  # ['ar','diff','diff+ar']
     cfg_scale: float = field(default=1.0)
     ddim_steps: int = field(default=10)
