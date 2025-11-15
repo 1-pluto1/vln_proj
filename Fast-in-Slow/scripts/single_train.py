@@ -293,6 +293,7 @@ def train(cfg: TrainConfig) -> None:
 
     # [Explicit] Call to `freeze_backbones` here for clarity =>> will log exactly what is/is not frozen
     overwatch.info(f"Invoking `VLM.freeze_backbones()` for `{vla_id}` => Stage: `{stage}`")
+    stage = "vla-last-layer-train" 
     vla.freeze_backbones(stage)
 
     if cfg.vla.freeze_vision_backbone and cfg.vla.freeze_llm_backbone:

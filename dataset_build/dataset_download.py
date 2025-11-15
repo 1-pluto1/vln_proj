@@ -18,17 +18,17 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def parse_args():
-    parser = argparse.ArgumentParser(description='下载TravelUAV数据集')
+    parser = argparse.ArgumentParser(description='下载vla-r1数据集')
     parser.add_argument(
         '--output_dir',
         type=str,
-        default='/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/UAV_Flow_data',
+        default='/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/vla-r1-data',
         help='数据集下载位置'
     )
     parser.add_argument(
         '--repo_id',
         type=str,
-        default='wangxiangyu0814/UAV-Flow',
+        default='GigaAI-Research/vla_r1',
         help='Huggingface上的数据集仓库ID'
     )
     parser.add_argument(
@@ -40,7 +40,6 @@ def parse_args():
     parser.add_argument(
         '--file',
         type=str,
-        default='train-00000-of-00054.parquet',
         help='指定要下载的单个文件，不指定则下载整个仓库'
     )
     return parser.parse_args()

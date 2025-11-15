@@ -11,11 +11,12 @@ import torch
 
 from models.vlms import PrismaticVLM
 from models import FiSvla
-from training.strategies import FSDPStrategy, TrainingStrategy
+from training.strategies import FSDPStrategy, TrainingStrategy, SingleDeviceStrategy
 # Registry =>> Maps ID --> {cls(), kwargs} :: supports FSDP for now, but DDP handler is also implemented!
 TRAIN_STRATEGIES = {
     "fsdp-shard-grad-op": {"cls": FSDPStrategy, "kwargs": {"sharding_strategy": "shard-grad-op"}},
     "fsdp-full-shard": {"cls": FSDPStrategy, "kwargs": {"sharding_strategy": "full-shard"}},
+    "single-gpu": {"cls": SingleDeviceStrategy, "kwargs": {}},
 }
 
 

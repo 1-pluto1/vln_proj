@@ -2,7 +2,7 @@ import tensorflow_datasets as tfds
 
 # 这一行会导入你的 builder 脚本 (uav_dataset_builder.py)
 # 并使其在 TFDS 中 "注册" UavDataset 类
-import vla.datasets.uav_dataset_builder 
+import uav_dataset_builder 
 import os
 import argparse
 

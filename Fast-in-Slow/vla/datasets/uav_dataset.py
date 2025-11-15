@@ -4,8 +4,12 @@ uav_dataset.py
 UAV-specific dataset implementation for TravelUAV integration with Fast-in-Slow VLA framework.
 """
 
-
+import logging
 from dataclasses import dataclass
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 from pathlib import Path
 from typing import Any, Dict, List, Tuple, Type, Optional
 import numpy as np
@@ -241,8 +245,47 @@ class UAVDataset(IterableDataset):
         return make_interleaved_dataset(**rlds_config)
 
     def __iter__(self) -> Dict[str, Any]:
-        for rlds_batch in self.dataset.as_numpy_iterator():
-            yield self.batch_transform(rlds_batch)
+        for i, rlds_batch in enumerate(self.dataset.as_numpy_iterator()):
+            if i == 0:  # Log only the first batch to avoid spamming.
+                logger.info("--- Logging content of the first raw RLDS batch before transform ---")
+                
+                def log_nested_dict(d, indent=0):
+                    for key, value in d.items():
+                        prefix = '  ' * indent
+                        if isinstance(value, dict):
+                            logger.info(f"{prefix}{key}: (dict)")
+                            log_nested_dict(value, indent + 1)
+                        elif hasattr(value, 'shape'): # For numpy arrays
+                            logger.info(f"{prefix}{key}: shape={value.shape}, dtype={value.dtype}")
+                        else:
+                            try:
+                                # Decode bytes for cleaner logging
+                                display_value = value.decode() if isinstance(value, bytes) else value
+                                logger.info(f"{prefix}{key}: {display_value}")
+                            except Exception as e:
+                                logger.info(f"{prefix}{key}: <unloggable value of type {type(value)}>, error: {e}")
+
+                log_nested_dict(rlds_batch)
+
+            transformed_batch = self.batch_transform(rlds_batch)
+            
+            if i == 0:  # Log only the first transformed batch to avoid spamming.
+                logger.info("--- Logging content of the first transformed batch after transform ---")
+                
+                def log_transformed_dict(d, indent=0):
+                    for key, value in d.items():
+                        prefix = '  ' * indent
+                        if isinstance(value, dict):
+                            logger.info(f"{prefix}{key}: (dict)")
+                            log_transformed_dict(value, indent + 1)
+                        elif isinstance(value, torch.Tensor):
+                            logger.info(f"{prefix}{key}: tensor, shape={value.shape}, dtype={value.dtype}")
+                        else:
+                            logger.info(f"{prefix}{key}: {type(value)}")
+
+                log_transformed_dict(transformed_batch)
+
+            yield transformed_batch
 
     def __len__(self) -> int:
         return self.dataset_length

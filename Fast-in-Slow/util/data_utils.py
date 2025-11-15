@@ -97,7 +97,7 @@ class PaddedCollatorForActionPrediction:
     pad_token_id: int
     padding_side: str = "right"
     pixel_values_dtype: torch.dtype = torch.float32
-    load_pointcloud: bool = False,
+    load_pointcloud: bool = False
 
     def __call__(self, instances: Sequence[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
         input_ids, labels = tuple([instance[key] for instance in instances] for key in ("input_ids", "labels"))

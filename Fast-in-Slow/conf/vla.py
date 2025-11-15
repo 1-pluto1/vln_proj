@@ -79,7 +79,7 @@ class Exp_SigLIP_224px_Bridge(VLAConfig):
     max_steps: Optional[int] = None
 
     expected_world_size: int = 1
-    global_batch_size: int = 256
+    global_batch_size: int = 2
     per_device_batch_size: int = 32
 
     learning_rate: float = 2e-5
@@ -89,7 +89,7 @@ class Exp_SigLIP_224px_Bridge(VLAConfig):
     warmup_ratio: float = 0.0
 
     train_strategy: str = "fsdp-full-shard"
-
+    # train_strategy: str = "single-gpu"
 
 # === FiSvla Pretraining Configs ===
 
@@ -103,7 +103,7 @@ class Exp_FiSvla_OXE_Magic_Soup_Plus_Minus(Exp_SigLIP_224px_Bridge):
     shuffle_buffer_size: int = 10_000
     expected_world_size: int = 1
     global_batch_size: int = 256
-    per_device_batch_size: int = 16
+    per_device_batch_size: int = 1
     max_grad_norm: float = 1.0
     learning_rate: float = 2e-5
     freeze_vision_backbone: bool = True

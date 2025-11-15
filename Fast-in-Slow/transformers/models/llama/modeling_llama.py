@@ -695,7 +695,7 @@ LLAMA_ATTENTION_CLASSES = {
 
 
 class LlamaDecoderLayer(nn.Module):
-    def __init__(self, config: LlamaConfig, layer_idx: int, fuse: str):
+    def __init__(self, config: LlamaConfig, layer_idx: int, fuse: str = None):
         super().__init__()
         self.hidden_size = config.hidden_size
         self.fuse = fuse
@@ -924,7 +924,7 @@ class LlamaModel(LlamaPreTrainedModel):
         config: LlamaConfig
     """
 
-    def __init__(self, config: LlamaConfig, fuse):
+    def __init__(self, config: LlamaConfig, fuse=None):
         super().__init__(config)
         self.padding_idx = config.pad_token_id
         self.vocab_size = config.vocab_size
@@ -1142,7 +1142,7 @@ class LlamaModel(LlamaPreTrainedModel):
 class LlamaForCausalLM(LlamaPreTrainedModel):
     _tied_weights_keys = ["lm_head.weight"]
 
-    def __init__(self, config, fuse):
+    def __init__(self, config, fuse=None):
         super().__init__(config)
         self.model = LlamaModel(config, fuse)
         self.vocab_size = config.vocab_size
