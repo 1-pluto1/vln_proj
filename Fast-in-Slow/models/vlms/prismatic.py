@@ -1233,7 +1233,8 @@ class PrismaticVLM(VLM):
             if self.use_diff and not self.gen_discret_action:
                 last_true_indice = torch.where(input_ids[indice] == tag_0)[tag_1][-1] + (slow_latent_embedding.shape[1]-input_ids.shape[1])
                 last_true_indice += fast_projected_patch_embeddings.shape[1]
-                if self.load_pointcloud: last_true_indice += pointcloud_projected_patch_embeddings.shape[1]
+                # if self.load_pointcloud: 
+                #     last_true_indice += pointcloud_projected_patch_embeddings.shape[1]
                 last_true_indices.append(last_true_indice)
 
             embed = torch.cat([

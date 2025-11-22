@@ -14,6 +14,7 @@ class Assist:
         self.dino_results = []
         self.depth_results = []
         self.recent_help_deque = deque(maxlen=9)
+        self.collision_type = None
     
     def find_shortest_pos(self, cur_pos, traj):
         x, y, z = cur_pos[0], cur_pos[1], cur_pos[2]
@@ -70,6 +71,7 @@ class Assist:
             
             if collision_type is not None:
                 print('collision type: ', collision_type)
+                self.collision_type = collision_type
             collisions[i] = np.all(diff < 3) or close_collision or distance < 0.1
             if collisions[i] and not dones[i]:
                 dones[i] = True

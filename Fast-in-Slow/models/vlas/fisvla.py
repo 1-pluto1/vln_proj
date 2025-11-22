@@ -42,7 +42,7 @@ class FiSvla(nn.Module):
         vlm: PrismaticVLM,
         action_tokenizer: ActionTokenizer,
         token_size: int = 4096,
-        action_dim: int = 7,
+        action_dim: int = 6,
         future_action_window_size: int = 15,
         past_action_window_size: int = 0,
         norm_stats: Dict[str, Dict[str, Dict[str, Dict[str, List[float]]]]] = None,
@@ -296,7 +296,7 @@ class FiSvla(nn.Module):
         enable_mixed_precision_training: bool = True,
         arch_specifier: str = "gelu-mlp",
         freeze_weights: bool = True,
-        action_dim: int = 7,
+        action_dim: int = 6,
         future_action_window_size: int = 15,
         past_action_window_size: int = 0,
         norm_stats = None,
@@ -415,7 +415,7 @@ class FiSvla(nn.Module):
         cfg_scale: float = 1.5, 
         use_ddim: bool = False,
         num_ddim_steps: int = 5,
-        action_dim: int = 7,
+        action_dim: int = 6,
         cur_robot_state: Optional[str] = None,
         multi_view: bool = True,
         predict_mode: str = "diff+ar",
@@ -759,7 +759,7 @@ class FiSvla(nn.Module):
         cfg_scale: float = 1.5, 
         use_ddim: bool = False,
         num_ddim_steps: int = 5,
-        action_dim: int = 7,
+        action_dim: int = 6,
         cur_robot_state: Optional[str] = None,
         predict_mode: str = "diff",
         **kwargs: str
@@ -849,7 +849,6 @@ class FiSvla(nn.Module):
             return actions
         
         def prepare_diffusion():
-            action_dim = 7
             noise = torch.randn(1, self.action_chunk, action_dim, device=device)
             using_cfg = cfg_scale > 1.0
             

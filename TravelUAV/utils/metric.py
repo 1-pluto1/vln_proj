@@ -46,6 +46,7 @@ def calculate_ne(path, dirs, success_dirs):
 
     avg_ne = np.mean(np.array(ne_list))
     logging.info(f"Average Normalized Error (NE): {avg_ne:.2f}")
+    return avg_ne
 
 
 def calculate_spl(path, dirs, success_dirs):
@@ -85,6 +86,7 @@ def calculate_spl(path, dirs, success_dirs):
 
     avg_spl = np.mean(np.array(spl_list)) * 100
     logging.info(f"Average Success Path Length (SPL): {avg_spl:.2f}%")
+    return avg_spl
 
 
 def split_data(path, path_type):
@@ -116,14 +118,18 @@ def split_data(path, path_type):
 
 
 
-def analyze_results(root_dir, analysis_list, path_type_list):
+def analyze_results(root_dir, analysis_list, path_type_list, output_dir=None):
     """Main function to analyze the results for different analysis types and path types."""
+    all_metrics = {}
+    
     for analysis_item in analysis_list:
         analysis_path = os.path.join(root_dir, analysis_item)
         if not os.path.exists(analysis_path):
             continue
         logging.info(f"\nStarting analysis for type: {analysis_item}")
 
+        all_metrics[analysis_item] = {}
+        
         for path_type in path_type_list:
             logging.info(f'\nAnalyzing for path type: {path_type}')
             analysis_dirs = split_data(analysis_path, path_type)
@@ -146,8 +152,29 @@ def analyze_results(root_dir, analysis_list, path_type_list):
             logging.info(f"Success Rate (SR): {sr:.2f}%")
             logging.info(f"Oracle Success Rate (OSR): {osr:.2f}%")
 
-            calculate_ne(analysis_path, analysis_dirs, success_dirs)
-            calculate_spl(analysis_path, analysis_dirs, success_dirs)
+            avg_ne = calculate_ne(analysis_path, analysis_dirs, success_dirs)
+            avg_spl = calculate_spl(analysis_path, analysis_dirs, success_dirs)
+            
+            # Store metrics in exact same format as logged output
+            all_metrics[analysis_item][path_type] = {
+                'total_trajectories': total,
+                'success_count': success,
+                'oracle_count': oracle,
+                'success_rate': f"{sr:.2f}%",
+                'oracle_success_rate': f"{osr:.2f}%",
+                'normalized_error': f"{avg_ne:.2f}",
+                'success_path_length': f"{avg_spl:.2f}%"
+            }
+    
+    # Save metrics to JSON file if output directory is specified
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+        output_file = os.path.join(output_dir, 'metrics.json')
+        with open(output_file, 'w') as f:
+            json.dump(all_metrics, f, indent=2)
+        logging.info(f"Metrics saved to: {output_file}")
+    
+    return all_metrics
 
 
 if __name__ == "__main__":
@@ -155,7 +182,8 @@ if __name__ == "__main__":
     parser.add_argument('--root_dir', type=str, required=True, help="The root directory of the dataset.")
     parser.add_argument('--analysis_list', type=str, nargs='+', required=True, help="List of analysis items to process.")
     parser.add_argument('--path_type_list', type=str, nargs='+', required=True, help="List of path types to analyze.")
+    parser.add_argument('--output_dir', type=str, default=None, help="Directory to save metrics JSON file.")
 
     args = parser.parse_args()
 
-    analyze_results(args.root_dir, args.analysis_list, args.path_type_list)
+    analyze_results(args.root_dir, args.analysis_list, args.path_type_list, args.output_dir)

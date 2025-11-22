@@ -24,24 +24,24 @@ USE_DIFF=true                # 是否使用 Diffusion 模型
 AR_DIFF_LOSS=true            # 是否启用自回归（AR）+ Diffusion 联合损失
 REPEATED_DIFFUSION_STEPS=4   # 每步重复的 Diffusion 次数
 CLASS_DROPOUT_PROB=0.0       # 类别 dropout 概率
-FREEZE_VISON=false           # 是否冻结视觉骨干网络
-FREEZE_LLM=true             # 是否冻结语言模型骨干网络
-UNFREEZE_LAST_LLM_LAYER=true
+FREEZE_VISON=true           # 是否冻结视觉骨干网络
+FREEZE_LLM=false            # 是否冻结语言模型骨干网络
+UNFREEZE_LAST_LLM_LAYER=false
 SLOW_FAST_RATIO=1_4          # 慢-快系统帧比（例如 1:4）
-ACTION_CHUNK=1               # 动作 chunk 大小（序列打包长度）
+ACTION_CHUNK=7               # 动作 chunk 大小（序列打包长度）
 LANG_SUBGOALS_EXIST=true     # 是否包含语言子目标（分阶段指令）
 
 SETTING="test_multi_key_STATE_${LOAD_STATE}_ACTION_CHUNK_${ACTION_CHUNK}_SLOW_FAST_RATIO_${SLOW_FAST_RATIO}_ddim${DIFFUSION_STEPS}_PC${LOAD_POINTCLOUD}_POS${POINTCLOUD_POS}_${TRAINING_MODE}_withARloss${LOAD_POINTCLOUD}_slow_fast_[after]_[-1]_${LLM_MIDDLE_LAYER}_fisvla_pretrain_window${FUTURE_ACTION_STEPS}"  # 实验设置字符串（基于上述变量拼接）
 
 DATA_MIX=uav_dataset  # 数据混合方案
 TASK=uav_dataset  # 任务/数据集子目录名
-BATCH_SIZE=4         # 每设备的批大小
+BATCH_SIZE=3         # 每设备的批大小
 EPOCHS=1           # 训练轮数
 LEARNING_RATE=2e-5   # 学习率
 ACTION_DIM=6         # 动作空间维度
 CAMERA_VIEW="head_slow,head_fast"  # 使用的相机视角组合
 
-DATA_ROOT="/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/datasets/test_data"  # 数据根目录
+DATA_ROOT="/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/datasets"  # 数据根目录
 EXP_ROOT=/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/Fast-in-Slow/exp       # 实验输出目录
 MODEL_SAVE_NUM=3  # 每次保存的模型数（保留的 checkpoint 数量）
 

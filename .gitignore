@@ -68,3 +68,9 @@ checkpoint/
 Llama-2-7b-hf/
 
 vla-r1-data/
+
+groundingdino_swint_ogc.pth
+
+eval_test/
+
+traveluav_new/

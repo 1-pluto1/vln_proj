@@ -1,4 +1,7 @@
 import copy
+import os
+
+import cv2
 import numpy as np
 import math
 import torch
@@ -68,6 +71,66 @@ class DinoMonitor:
             if len(target_detections) > 0:
                 done = True
                 break
+
+        return done
+
+    def get_dino_results_test(self, episode, obj_info, save_dir="/home/gentoo/asus/liusq/UAV_VLN/TravelUAV/data/eval_test/detection_results"):
+        # 确保保存目录存在
+        os.makedirs(save_dir, exist_ok=True)
+
+        images = episode[-1]['rgb_record']
+        depths = episode[-1]['depth_record']
+        done = False
+        saved_files = []  # 存储保存的文件路径
+
+        for img_idx in range(len(images)):
+            img = images[img_idx]
+            depth = depths[img_idx]
+            target_detections = []
+            boxes, logits = self.detect(img, obj_info)
+
+            if len(boxes) > 0:
+                # 创建副本用于绘制边界框，避免修改原图
+                img_with_boxes = img.copy()
+
+                for box_idx, box in enumerate(boxes):
+                    # 将边界框坐标转换为整数
+                    box = list(map(int, box))
+                    x1, y1, x2, y2 = box
+
+                    # 计算中心点
+                    center_point = (int((x1 + x2) / 2), int((y1 + y2) / 2))
+
+                    # 获取深度信息
+                    depth_data = int(depth[center_point[1], center_point[0]] / 2.55)
+
+                    # 绘制边界框 (绿色，线宽2)
+                    cv2.rectangle(img_with_boxes, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+                    # 绘制中心点 (红色)
+                    cv2.circle(img_with_boxes, center_point, 5, (0, 0, 255), -1)
+
+                    # 添加置信度和深度信息标签
+                    label = f"Conf: {logits[box_idx]:.2f}, Depth: {depth_data}"
+                    cv2.putText(img_with_boxes, label, (x1, y1 - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+
+                    if depth_data < 18:
+                        target_detections.append((float(logits[box_idx]), depth_data))
+
+                # 如果检测到目标，保存图片
+                if len(target_detections) > 0:
+                    filename = f"{os.path.basename(episode[-1]['trajectory_dir'])}_{obj_info}_{len(episode)}.jpg"
+                    save_path = os.path.join(save_dir, filename)
+
+                    # 保存图片
+                    #cv2.imwrite(save_path, cv2.cvtColor(img_with_boxes, cv2.COLOR_RGB2BGR))
+                    cv2.imwrite(save_path, img_with_boxes)
+                    saved_files.append(save_path)
+                    #print(f"保存检测结果到: {save_path}")
+
+                    done = True
+                    break
 
         return done
     

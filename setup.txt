@@ -1,4 +1,4 @@
 conda init
 source ~/.bashrc
-conda activate vln_proj
-cd /home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj
+conda activate vln_proj03
+cd /home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/

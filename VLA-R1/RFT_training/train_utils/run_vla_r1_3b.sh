@@ -1,11 +1,11 @@
 set -x
 ENGINE=${1:-vllm}
 
-train_data="path/to/train.parquet"
-val_data="path/to/test.parquet"
-reward_function="RFT_training/train_utils/robot_bbox_traj_norm.py"
-ref_model="path/to/your_ref_checkpoints"
-save_path="path/to/your_dir_name"
+train_data="/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/datasets/grpo_data/train.parquet"
+val_data="/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/datasets/grpo_data/val.parquet"
+reward_function="/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/TravelUAV/src/vlnce_src/grpo_reward.py"
+ref_model="/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/Fast-in-Slow/exp/exp_uav_dataset_test_multi_key_STATE_true_ACTION_CHUNK_1_SLOW_FAST_RATIO_1_4_ddim100_PCfalse_POSfast_async_withARlossfalse_slow_fast_[after]_[-1]_30_fisvla_pretrain_window0/checkpoints/step-006724-epoch-00-loss=2.4647.pt"
+save_path="/home/gentoo/docker_shared/asus/liusq/UAV_VLN/vln_proj/ckpt/grpo"
 
 cd RFT_training/verl
 python3 -m verl.trainer.main_ppo \
@@ -36,6 +36,8 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=20 \
     actor_rollout_ref.rollout.tensor_model_parallel_size=2 \
     actor_rollout_ref.rollout.name=$ENGINE \
+    actor_rollout_ref.rollout.mode=async \
+    actor_rollout_ref.rollout.multi_turn.enable=True \
     +actor_rollout_ref.rollout.engine_kwargs.vllm.disable_mm_preprocessor_cache=True \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.6 \
     actor_rollout_ref.rollout.enable_chunked_prefill=False \
